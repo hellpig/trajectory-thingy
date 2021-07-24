@@ -15,7 +15,7 @@ a function that feels a bit hacked together. Please tinker with and fine tune co
 Then, I vary initial velocity by 0.1% in random directions to get a sense of where the rocket would actually hit given
 random winds, random thrust, random wobbling, etc.
 
-Runge–Kutta method (RK4) is used with adaptive step size proportional to velocity/acceleration.
+Runge-Kutta method (RK4) is used with adaptive step size proportional to velocity/acceleration.
 This ensures that the dv/v for each time step is constant since
   dt = (dv/v) * v/a
 I want to keep dv/v the same because you can use the simple projectile range formula from freshman physics to show that
