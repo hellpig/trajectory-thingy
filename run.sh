@@ -17,17 +17,17 @@
 # Note: on default macOS, g++ is a link for clang, which works,
 #   but I replace g++ with g++-mp-9 after installing gcc9 via MacPorts.
 
-# To run on Windows using Mingw-w64...
-#  - install Mingw-w64:  http://mingw-w64.org/doku.php/download/mingw-builds
-#      (I had to change my architecture to x86_64 when installing)
-#  - install gnuplot:  https://sourceforge.net/projects/gnuplot/
+# To run on Windows using Cygwin64...
+#  - install:  https://cygwin.com/install.html
+#       making sure to select gcc-g++ and bash
+#  - install gnuplot (cygwin's didn't work):  https://sourceforge.net/projects/gnuplot/
 #  - add the following bin folders to Path in Windows (your folders may differ)...
 #       C:\Program Files\gnuplot\bin
-#       C:\Program Files\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64\bin
-#  - in this run.sh, add .exe to executables: g++, code, and gnuplot
-#  - in this code, remove "set term x11 enhanced" stuff
+#       C:\cygwin64\bin
+#  - in this run.sh, add .exe to executables (maybe not necessary): g++, code, and gnuplot
+#  - in this code and plot.gpl, remove "set term x11 enhanced" stuff (or change to "set term windows")
 #  - in this run.sh, replace   echo \"0 0\"   with   ECHO 0 0
-#  - in Command Prompt, go to directory then type:  bash run.sh
+#  - in PowerShell (or Command Prompt), go to directory then type:  bash run.sh
 
 
 
