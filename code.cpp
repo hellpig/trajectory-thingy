@@ -7,6 +7,7 @@ Air density and g are calculated as a function of altitude.
 Does not simulate any thrust or change in projectile mass.
 To make code more realistic, maybe set initial altitude (alt0) to be above Earth's atmosphere
 to correspond to after the multi-stage thrust.
+If using alt0 = 0.0, there may be a large initial velocity needed to punch through the atmosphere.
 
 The goal is to minimize a cost function to hit a target via the optimal initial velocity vector.
 To do this, I assume that launch speed is adjustable.
@@ -47,7 +48,7 @@ where
 To get air-resistance acceleration, use
   - k exp( - (r-re) / 10400.0 ) v^2 vHat
 where
-  re = 6.27e6
+  re = 6.37e6
 All coordinates are attached to the rotating Earth,
 so Newton's 2nd law gains some non-inertial (Coriolis and centrifugal) terms...
   a = F/m + 2 v*Omega + (Omega*r)*Omega
@@ -72,7 +73,7 @@ using namespace std;
 #define piOver180 1.74532925199432957e-2
 #define sixth 0.16666666666666667
 #define GM 3.986e14        // G * M_earth
-#define re 6.27e6          // average radius of Earth
+#define re 6.37e6          // average radius of Earth
 #define Omega 7.292e-5     // angular velocity of Earth
 #define oneOverH 9.615e-5  // 1/H; H is height scale of air's exponential density fall
 
@@ -83,7 +84,7 @@ const double alt0 = 0.0;       // start altitude (0 is sea level)
 const double lat0 = 0.0;       // start latitude in degrees (-90 to 90)
 const double altEnd = 0.0;     // target altitude (0 is sea level)
 const double latEnd = 90.0;    // target latitude in degrees (-90 to 90 from south pole to north pole)
-const double longEnd = 180.0;    // target longitude in degrees (-180 to 180; start longitude is 0)
+const double longEnd = 180.0;  // target longitude in degrees (-180 to 180; start longitude is 0, so longEnd is the change in longitude)
 const double dvOverV = 0.01;   // desired fractional change of v each time step
 const double tLimit = 1e6;     // time limit in case of orbits
 const int iStop = 0.10000001 / dvOverV;      // how many steps to wait to output to file
@@ -250,7 +251,7 @@ void RK4(bool print, double v0x, double v0y, double v0z) {
       i = 0;
       myfile << t << ' ' << vars1[0] << ' ' << vars1[1] << ' ' << vars1[2] 
                   << ' ' << vars1[3] << ' ' << vars1[4] << ' ' << vars1[5]
-                  << ' ' << alt << ' ' << re*acos(sin(lat0)*cos(th) + cos(lat0)*sin(th)*cos(phi)) << endl;
+                  << ' ' << alt << ' ' << re*acos(cos(th0)*cos(th) + sin(th0)*sin(th)*cos(phi)) << endl;
     }
 
   }
