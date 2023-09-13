@@ -5,7 +5,7 @@ set parametric
 set isosamples 50,50
 set hidden
 
-R = 6.27e6   # radius of sphere
+R = 6.37e6   # radius of sphere
 set urange [-pi/2:pi/2]
 set vrange [0:2*pi]
 splot R*cos(u)*cos(v),R*cos(u)*sin(v),R*sin(u) w l lc rgb "yellow" title "Earth", "data.dat" u 2:3:4 with lines title "trajectory"
