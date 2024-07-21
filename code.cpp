@@ -498,7 +498,7 @@ int main() {
 
 
 
-  // Produce another file when changing v0 by 1% in many random ways (all use same altEnd)
+  // Produce another file when changing v0 by a set percentage in many random ways (all use same altEnd)
   //cout << "  randomly varying v0..." << endl;
   myfile2.precision(8);
   myfile2 << "# v0x, v0y, v0z, miss x, miss y, miss z  (the miss vector projected onto phiHat,-thHat,rHat of target location so that y is North)" << endl;
