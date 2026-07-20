@@ -13,15 +13,15 @@ The goal is to minimize a cost function to hit a target via the optimal initial 
 To do this, I assume that launch speed is adjustable.
 To hit the target, I use gradient-descent optimization of cost(),
 a function that feels a bit hacked together. Please tinker with and fine tune cost()!
-Then, I vary initial velocity by 0.1% in random directions to get a sense of where the rocket would actually hit given
+Then, I vary initial velocity by 0.1% in random directions to get a sense of where the rocket could actually hit given
 random winds, random thrust, random wobbling, etc.
 
 Runge-Kutta method (RK4) is used with adaptive step size proportional to velocity/acceleration.
-This ensures that the dv/v for each time step is constant since
+This ensures that the dv/v for each time step is approximately constant since
   dt = (dv/v) * v/a
 I want to keep dv/v the same because you can use the simple projectile range formula from freshman physics to show that
   dRange / Range is proportional to dv / v
-but maybe you'll want to do some other type of adaptive step size.
+but maybe you'll want to do some other type of adaptive step size, perhaps setting a maximum dt.
 An adaptive time step is important when k is large and v changes rapidly in the beginning.
 
 All units in this file are MKS (and sometimes angular degrees).
@@ -73,7 +73,7 @@ using namespace std;
 #define piOver180 1.74532925199432957e-2
 #define sixth 0.16666666666666667
 #define GM 3.986e14        // G * M_earth
-#define re 6.37e6          // average radius of Earth
+#define re 6.37e6          // average radius of Earth. Should match plot.gpl
 #define Omega 7.292e-5     // angular velocity of Earth
 #define oneOverH 9.615e-5  // 1/H; H is height scale of air's exponential density fall
 
@@ -119,7 +119,7 @@ const double tRef = vRef * re*re / GM;        // since time of flight is proport
 
 // declare
 double g,kz,dt;
-double r,th,phi,vr,alt,dAlt;
+double r,th,phi,vr,alt;
 double x,y,z,vx,vy,vz,v,t;
 double v0,v0x,v0y,v0z;
 ofstream myfile(dataFile);
@@ -130,14 +130,14 @@ ofstream myfile2(dataFile2);
 
 // --------------- cost() -----------------------
 // 
-// To hit the target with the lowest launch speed in the shortest time.
+// To find a trajectory that trades off targeting accuracy, launch speed, and flight time.
 // Lowest launch speed could save fuel or allow for more maneuverability with unused fuel.
 // Shortest time is good because target could move or missile could be shot down.
 //
 // One should minimize this cost to find the best trajectory.
 // To find a gradient of cost(), I first made sure that RK4() interpolates back to hit altEnd exactly.
 //
-// This should be a smooth function so that finding gradients is a useful approach to minimizing it.
+// The goal is to have a smooth function so that finding gradients is a useful approach to minimizing it.
 //
 // I think it's important to hit the target THEN worry about the rest,
 //   so I multiply the targeting term by 100.
@@ -155,7 +155,7 @@ double cost(){
 
 
 
-// --------------- Runge-Kutta method: RK4()  --------------------
+// --------------- fourth-order Runge-Kutta method: RK4()  --------------------
 
 // Each of the following arrays has the form...
 //     {x, y, z, vx, vy, vz}
@@ -205,7 +205,7 @@ void RK4(bool print, double v0x, double v0y, double v0z) {
   vars1[4] = v0y;
   vars1[5] = v0z;
   alt = alt0;
-  vr = sin(th0)*v0x + cos(th0)*v0y;
+  vr = sin(th0)*v0x + cos(th0)*v0z;
 
   // compute
   t = 0.0;
@@ -249,9 +249,14 @@ void RK4(bool print, double v0x, double v0y, double v0z) {
     i++;
     if ( print && i == iStop ) {
       i = 0;
+
+      // ensure roundoff error does not mess up acos()
+      double cosAngle = cos(th0)*cos(th) + sin(th0)*sin(th)*cos(phi);
+      cosAngle = max(-1.0, min(1.0, cosAngle));
+
       myfile << t << ' ' << vars1[0] << ' ' << vars1[1] << ' ' << vars1[2] 
                   << ' ' << vars1[3] << ' ' << vars1[4] << ' ' << vars1[5]
-                  << ' ' << alt << ' ' << re*acos(cos(th0)*cos(th) + sin(th0)*sin(th)*cos(phi)) << endl;
+                  << ' ' << alt << ' ' << re*acos(cosAngle) << endl;
     }
 
   }
@@ -285,7 +290,7 @@ void RK4(bool print, double v0x, double v0y, double v0z) {
 double m = 100000000.0;
 
 const double mStop = 0.00001;  // smallest m before stopping
-const double f = 0.000000001;      // fraction of v0 to change when finding gradient
+const double f = 1e-6;      // fraction of v0 to change when finding gradient
 
 
 ////// Find optimal velocity using basic "Gradient descent" method
@@ -331,7 +336,7 @@ void optimize(){
       // don't allow negative v0r
       // don't allow cost to increase
       // don't allow missile to miss in r direction
-      double v0r = sin(th0)*v0x + cos(th0)*v0y;
+      double v0r = sin(th0)*v0x + cos(th0)*v0z;
       if (v0r < 0 || bTemp >= b || abs(altEnd-alt)/dRef > 0.00001) {
         v0x += grad[0] * m;
         v0y += grad[1] * m;
@@ -371,7 +376,7 @@ double newV0x,newV0y,newV0z;
 // deviation from v0 landing location along old final phiHat, -thHat, rHat respectively
 double missX,missY,missZ;
 
-void varyV0(int iStop) {
+void varyV0(int numberOfLaunches) {
 
   // 0.1% of v0
   double radius = 0.001 * v0;
@@ -386,7 +391,7 @@ void varyV0(int iStop) {
   thOld = th;
   phiOld = phi;
 
-  for(int i=0; i<=iStop; i++) {
+  for(int i=0; i<numberOfLaunches; i++) {
 
     // vary the v0 in a way that favors no direction to get newV0x,newV0y,newV0z
     while(true) {
@@ -397,7 +402,7 @@ void varyV0(int iStop) {
       newV0z = static_cast <double> (rand()) /( static_cast <double> (RAND_MAX/2.0) ) - 1.0;
 
       double temp = newV0x*newV0x + newV0y*newV0y + newV0z*newV0z;
-      if ( temp < 1 ) {              // does coordinate fall in sphere of radius = 1 ?
+      if ( temp > 0.0 && temp < 1 ) {     // does coordinate fall in sphere of radius = 1 ?
         temp = radius / sqrt(temp);  // scale factor to get to desired radius
         newV0x = oldV0x + temp * newV0x;
         newV0y = oldV0y + temp * newV0y;
@@ -432,6 +437,11 @@ void varyV0(int iStop) {
 
 int main() {
 
+  if (dRef == 0.0) {
+    cerr << "Error: launch and target positions must be different." << endl;
+    return 1;
+  }
+
 
   // run RK4() many times to optimize v0x, v0y, and v0z to minimize cost()
   cout << "  optimizing trajectory..." << endl;
@@ -442,7 +452,7 @@ int main() {
   /*
 
   // Use with alt0>0, lat0=0, and k=0 to get circular orbits
-  // Increase v0y to get elliptical (won't look elliptical unless Omega = 0)
+  // Increase v0y to get more elliptical (won't look elliptical unless Omega = 0)
   v0x = 0.0;
   v0y = sqrt(GM/r0) - Omega*r0;
   v0z = 0.0;
